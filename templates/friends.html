@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusPulse - Friends</title>
+    <style>
+        :root { --bg: #0f172a; --panel: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; --blue: #38bdf8; --green: #22c55e; --red: #ef4444; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px; background: var(--bg); color: var(--text); font-family: Arial, sans-serif; }
+        .container { max-width: 1050px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        h1, h2 { margin: 0 0 14px; } h1 { color: var(--blue); }
+        a { color: var(--blue); text-decoration: none; font-weight: 600; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+        .panel, .person, .schedule { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+        .panel { min-height: 170px; }
+        input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-bottom: 12px; }
+        .person { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 9px 0; }
+        .person small, .empty { color: var(--muted); }
+        button { border: 0; border-radius: 6px; padding: 9px 12px; color: white; cursor: pointer; font-weight: 600; }
+        .primary { background: var(--blue); color: #082f49; } .accept { background: var(--green); } .decline, .remove { background: var(--red); }
+        .secondary { background: #475569; } .actions { display: flex; gap: 7px; flex-wrap: wrap; }
+        .schedule { margin-top: 18px; display: none; } table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--border); }
+        #message { min-height: 22px; color: var(--green); margin-bottom: 12px; }
+        @media (max-width: 600px) { body { padding: 16px; } .person { align-items: flex-start; flex-direction: column; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><div><h1>Friends</h1><div class="empty">Connect with classmates and compare schedules.</div></div><a href="/student">Back to dashboard</a></div>
+    <div id="message"></div>
+    <div class="grid">
+        <section class="panel"><h2>Find classmates</h2><input id="search" type="search" placeholder="Search by name or username" autocomplete="off"><div id="results" class="empty">Type at least two characters to search.</div></section>
+        <section class="panel"><h2>Friend requests</h2><div id="incoming"></div><div id="outgoing"></div></section>
+        <section class="panel"><h2>Your friends</h2><div id="friends"></div></section>
+    </div>
+    <section id="schedule" class="schedule"><h2 id="schedule-title"></h2><div id="schedule-content"></div></section>
+</div>
+<script>
+const message = document.getElementById('message');
+function showMessage(text, error = false) { message.textContent = text; message.style.color = error ? 'var(--red)' : 'var(--green)'; }
+async function api(url, options = {}) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok || data.success === false) throw new Error(data.error || 'Request failed'); return data; }
+function person(item, buttons) { return `<div class="person"><div><strong>${escapeHtml(item.full_name)}</strong><br><small>@${escapeHtml(item.username)}${item.grade ? ` · Grade ${item.grade}` : ''}</small></div><div class="actions">${buttons}</div></div>`; }
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char])); }
+async function loadFriends() {
+    const data = await api('/api/friends');
+    document.getElementById('friends').innerHTML = data.friends.length ? data.friends.map(item => person(item, `<button class="primary" onclick="viewSchedule(${item.id})">Schedule</button><button class="remove" onclick="removeFriend(${item.id})">Remove</button>`)).join('') : '<div class="empty">No friends yet.</div>';
+    document.getElementById('incoming').innerHTML = data.incoming.length ? '<strong>Incoming</strong>' + data.incoming.map(item => person(item, `<button class="accept" onclick="respond(${item.id}, 'accept')">Accept</button><button class="decline" onclick="respond(${item.id}, 'decline')">Decline</button>`)).join('') : '';
+    document.getElementById('outgoing').innerHTML = data.outgoing.length ? '<strong>Sent</strong>' + data.outgoing.map(item => person(item, '<small>Pending</small>')).join('') : '';
+    if (!data.incoming.length && !data.outgoing.length) document.getElementById('incoming').innerHTML = '<div class="empty">No pending requests.</div>';
+}
+async function searchUsers() {
+    const query = document.getElementById('search').value.trim();
+    if (query.length < 2) { document.getElementById('results').innerHTML = '<div class="empty">Type at least two characters to search.</div>'; return; }
+    const data = await api(`/api/friends/search?q=${encodeURIComponent(query)}`);
+    document.getElementById('results').innerHTML = data.users.length ? data.users.map(item => person(item, `<button class="primary" onclick="sendRequest(${item.id})">Add friend</button>`)).join('') : '<div class="empty">No classmates found.</div>';
+}
+async function sendRequest(id) { try { await api('/api/friends/request', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: id}) }); showMessage('Friend request sent.'); await loadFriends(); } catch (error) { showMessage(error.message, true); } }
+async function respond(id, action) { try { await api(`/api/friends/request/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action}) }); showMessage(action === 'accept' ? 'Friend request accepted.' : 'Friend request declined.'); await loadFriends(); } catch (error) { showMessage(error.message, true); } }
+async function removeFriend(id) { if (!confirm('Remove this friend?')) return; try { await api(`/api/friends/${id}`, { method: 'DELETE' }); showMessage('Friend removed.'); await loadFriends(); } catch (error) { showMessage(error.message, true); } }
+async function viewSchedule(id) { try { const data = await api(`/api/friends/${id}/schedule`); document.getElementById('schedule').style.display = 'block'; document.getElementById('schedule-title').textContent = `${data.friend.full_name}'s schedule`; document.getElementById('schedule-content').innerHTML = data.classes.length ? `<table><tr><th>Period</th><th>Class</th><th>Teacher</th><th>Room</th><th>Time</th></tr>${data.classes.map(item => `<tr><td>${item.period}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.teacher || 'Not assigned')}</td><td>${escapeHtml(item.room)}</td><td>${item.start_time} - ${item.end_time}</td></tr>`).join('')}</table>` : '<div class="empty">This friend has not selected classes yet.</div>'; } catch (error) { showMessage(error.message, true); } }
+document.getElementById('search').addEventListener('input', searchUsers); loadFriends().catch(error => showMessage(error.message, true));
+</script>
+</body>
+</html>

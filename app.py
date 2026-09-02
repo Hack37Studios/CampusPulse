@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import sqlite3
 import os
 from functools import wraps
@@ -112,9 +112,74 @@ def init_db():
             UNIQUE(school_id, period_number)
         )
     ''')
+
+    school_columns = {row['name'] for row in cursor.execute('PRAGMA table_info(schools)').fetchall()}
+    if 'last_school_day_date' not in school_columns:
+        cursor.execute('ALTER TABLE schools ADD COLUMN last_school_day_date TEXT')
+        cursor.execute('UPDATE schools SET last_school_day_date = ?', (date.today().isoformat(),))
     
     db.commit()
+    # Friend Requests table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS friend_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sender_id) REFERENCES users(id),
+            FOREIGN KEY (receiver_id) REFERENCES users(id),
+            UNIQUE(sender_id, receiver_id)
+        )
+    ''')
+
+    # Friends table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS friends (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id_1 INTEGER NOT NULL,
+            user_id_2 INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id_1) REFERENCES users(id),
+            FOREIGN KEY (user_id_2) REFERENCES users(id),
+            UNIQUE(user_id_1, user_id_2)
+        )
+    ''')
+
+    db.commit()
     db.close()
+
+def update_school_day_counters():
+    """Advance each school's counter once for every missed weekday."""
+    today = date.today()
+    db = get_db()
+    schools = db.execute('SELECT id, current_school_day, total_school_days, last_school_day_date FROM schools').fetchall()
+
+    for school in schools:
+        last_date = date.fromisoformat(school['last_school_day_date']) if school['last_school_day_date'] else today
+        if last_date >= today:
+            continue
+
+        missed_weekdays = 0
+        check_date = last_date + timedelta(days=1)
+        while check_date <= today:
+            if check_date.weekday() < 5:
+                missed_weekdays += 1
+            check_date += timedelta(days=1)
+
+        new_day = min(school['total_school_days'], school['current_school_day'] + missed_weekdays)
+        db.execute('''
+            UPDATE schools
+            SET current_school_day = ?, last_school_day_date = ?
+            WHERE id = ?
+        ''', (new_day, today.isoformat(), school['id']))
+
+    db.commit()
+    db.close()
+
+@app.before_request
+def refresh_school_day_counters():
+    update_school_day_counters()
 
 def hash_password(password):
     """Hash password"""
@@ -400,6 +465,168 @@ def get_schedule():
         'announcement': school['announcement'],
         'classes': [dict(c) for c in classes]
     })
+
+@app.route('/friends')
+@login_required
+def friends_page():
+    """Show friends and pending friend requests."""
+    return render_template('friends.html', user=session.get('full_name'))
+
+@app.route('/api/friends')
+@login_required
+def get_friends():
+    """Return accepted friends and pending requests for the current user."""
+    user_id = session['user_id']
+    db = get_db()
+    friends = db.execute('''
+        SELECT u.id, u.username, u.full_name, u.grade
+        FROM friends f
+        JOIN users u ON u.id = CASE WHEN f.user_id_1 = ? THEN f.user_id_2 ELSE f.user_id_1 END
+        WHERE f.user_id_1 = ? OR f.user_id_2 = ?
+        ORDER BY u.full_name
+    ''', (user_id, user_id, user_id)).fetchall()
+    incoming = db.execute('''
+        SELECT r.id, u.id AS user_id, u.username, u.full_name, r.created_at
+        FROM friend_requests r
+        JOIN users u ON u.id = r.sender_id
+        WHERE r.receiver_id = ? AND r.status = 'pending'
+        ORDER BY r.created_at DESC
+    ''', (user_id,)).fetchall()
+    outgoing = db.execute('''
+        SELECT r.id, u.id AS user_id, u.username, u.full_name, r.created_at
+        FROM friend_requests r
+        JOIN users u ON u.id = r.receiver_id
+        WHERE r.sender_id = ? AND r.status = 'pending'
+        ORDER BY r.created_at DESC
+    ''', (user_id,)).fetchall()
+    db.close()
+    return jsonify({
+        'friends': [dict(friend) for friend in friends],
+        'incoming': [dict(request) for request in incoming],
+        'outgoing': [dict(request) for request in outgoing]
+    })
+
+@app.route('/api/friends/search')
+@login_required
+def search_users():
+    """Search students in the current user's school."""
+    search = request.args.get('q', '').strip()
+    if len(search) < 2:
+        return jsonify({'users': []})
+
+    db = get_db()
+    users = db.execute('''
+        SELECT id, username, full_name, grade
+        FROM users
+        WHERE school_id = ? AND id != ?
+          AND (full_name LIKE ? OR username LIKE ?)
+        ORDER BY full_name
+        LIMIT 20
+    ''', (session['school_id'], session['user_id'], f'%{search}%', f'%{search}%')).fetchall()
+    db.close()
+    return jsonify({'users': [dict(user) for user in users]})
+
+@app.route('/api/friends/request', methods=['POST'])
+@login_required
+def send_friend_request():
+    """Send or re-send a friend request to a same-school user."""
+    data = request.get_json() or {}
+    receiver_id = data.get('user_id')
+    db = get_db()
+    receiver = db.execute('SELECT id FROM users WHERE id = ? AND school_id = ?',
+                          (receiver_id, session['school_id'])).fetchone()
+    if not receiver or receiver_id == session['user_id']:
+        db.close()
+        return jsonify({'success': False, 'error': 'User is not available'}), 400
+
+    first_id, second_id = sorted((session['user_id'], receiver_id))
+    friendship = db.execute('SELECT id FROM friends WHERE user_id_1 = ? AND user_id_2 = ?',
+                            (first_id, second_id)).fetchone()
+    if friendship:
+        db.close()
+        return jsonify({'success': False, 'error': 'You are already friends'}), 400
+
+    existing = db.execute('''
+        SELECT id, status FROM friend_requests
+        WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY id DESC LIMIT 1
+    ''', (session['user_id'], receiver_id, receiver_id, session['user_id'])).fetchone()
+    if existing and existing['status'] == 'pending':
+        db.close()
+        return jsonify({'success': False, 'error': 'Request already pending'}), 400
+
+    if existing:
+        db.execute('''
+            UPDATE friend_requests SET sender_id = ?, receiver_id = ?, status = 'pending', created_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (session['user_id'], receiver_id, existing['id']))
+    else:
+        db.execute('INSERT INTO friend_requests (sender_id, receiver_id) VALUES (?, ?)',
+                   (session['user_id'], receiver_id))
+    db.commit()
+    db.close()
+    return jsonify({'success': True})
+
+@app.route('/api/friends/request/<int:request_id>', methods=['PUT'])
+@login_required
+def respond_to_friend_request(request_id):
+    """Accept or decline an incoming friend request."""
+    action = (request.get_json() or {}).get('action')
+    if action not in ('accept', 'decline'):
+        return jsonify({'success': False, 'error': 'Invalid response'}), 400
+
+    db = get_db()
+    friend_request = db.execute('''
+        SELECT sender_id, receiver_id FROM friend_requests
+        WHERE id = ? AND receiver_id = ? AND status = 'pending'
+    ''', (request_id, session['user_id'])).fetchone()
+    if not friend_request:
+        db.close()
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+
+    new_status = 'accepted' if action == 'accept' else 'declined'
+    db.execute('UPDATE friend_requests SET status = ? WHERE id = ?', (new_status, request_id))
+    if action == 'accept':
+        first_id, second_id = sorted((friend_request['sender_id'], friend_request['receiver_id']))
+        db.execute('INSERT OR IGNORE INTO friends (user_id_1, user_id_2) VALUES (?, ?)',
+                   (first_id, second_id))
+    db.commit()
+    db.close()
+    return jsonify({'success': True})
+
+@app.route('/api/friends/<int:friend_id>', methods=['DELETE'])
+@login_required
+def remove_friend(friend_id):
+    """Remove an accepted friend."""
+    first_id, second_id = sorted((session['user_id'], friend_id))
+    db = get_db()
+    db.execute('DELETE FROM friends WHERE user_id_1 = ? AND user_id_2 = ?', (first_id, second_id))
+    db.commit()
+    db.close()
+    return jsonify({'success': True})
+
+@app.route('/api/friends/<int:friend_id>/schedule')
+@login_required
+def friend_schedule(friend_id):
+    """Return a friend's enrolled schedule when friendship is accepted."""
+    first_id, second_id = sorted((session['user_id'], friend_id))
+    db = get_db()
+    friend = db.execute('''
+        SELECT u.id, u.full_name, u.username
+        FROM friends f JOIN users u ON u.id = ?
+        WHERE f.user_id_1 = ? AND f.user_id_2 = ?
+    ''', (friend_id, first_id, second_id)).fetchone()
+    if not friend:
+        db.close()
+        return jsonify({'success': False, 'error': 'You are not friends with this user'}), 403
+    classes = db.execute('''
+        SELECT c.period, c.name, c.room, c.teacher, c.start_time, c.end_time
+        FROM student_classes sc JOIN classes c ON c.id = sc.class_id
+        WHERE sc.user_id = ? AND c.school_id = ?
+        ORDER BY c.period
+    ''', (friend_id, session['school_id'])).fetchall()
+    db.close()
+    return jsonify({'success': True, 'friend': dict(friend), 'classes': [dict(item) for item in classes]})
 
 @app.route('/classes')
 @login_required

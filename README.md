@@ -4,24 +4,25 @@ A comprehensive school schedule management system with a beautiful, modern inter
 
 ## Features ✨
 
-### Student Dashboard (CarPlay-Inspired Design)
+### Student Dashboard
 - **Real-time Clock & Date** - Always know what time it is
 - **Current Period Display** - See which class is happening now
 - **Live Countdown Timer** - Watch the minutes tick down until class ends
 - **Full Schedule View** - See all classes for the day with times and rooms
 - **School Day Counter** - Track progress through the school year
+- **Automatic School Day Counter** - Advances once per weekday and stops at the school's total day count
 - **Summer Countdown** - Days remaining until summer break
 - **Announcements** - Stay updated with school announcements
 - **Active Class Highlight** - Current class is visually distinguished
 - **Theme Toggle** - Switch between dark and light modes (preference saved)
 - **User Profile** - View and edit profile information
 - **Password Management** - Change password securely
+- **Friends & Schedule Sharing** - Send, accept, and decline requests; view accepted friends' enrolled schedules
 
 ### Authentication System
 - **User Registration** - Self-service registration for new students
 - **Secure Login** - Username and password authentication
-- **Role-Based Access** - Separate admin and student interfaces
-- **No Demo Accounts** - Clean start without pre-filled credentials
+- **Role-Based Access** - Separate admin and student interface
 - **Password Security** - Minimum 6 characters, hashed storage
 - **Multi-School Support** - Each user belongs to a specific school
 
@@ -88,7 +89,7 @@ CampusPulse/
 ├── campus_pulse.db                 # SQLite database (auto-created)
 ├── templates/                      # HTML templates
 │   ├── login.html                 # Login page
-│   ├── student_dashboard.html     # Student dashboard (CarPlay style)
+│   ├── student_dashboard.html     # Student dashboard
 │   ├── admin_dashboard.html       # Admin home dashboard
 │   ├── admin_school_edit.html     # School settings & class management
 │   └── admin_users.html           # User management page
@@ -103,6 +104,7 @@ CampusPulse/
 - `name`: School name
 - `total_school_days`: Total days in school year
 - `current_school_day`: Current day of year
+- `last_school_day_date`: Date through which the counter has been updated
 - `end_of_year_date`: Date school ends
 - `announcement`: School announcement
 
@@ -114,6 +116,13 @@ CampusPulse/
 - `email`: User email
 - `school_id`: Foreign key to schools
 - `role`: 'student' or 'admin'
+- `grade`: Student grade level
+- `graduation_year`: Expected graduation year
+
+### Friend Requests and Friends Tables
+- Friend requests track sender, receiver, status, and timestamp
+- Accepted friendships are stored separately with a unique user pair
+- Friend connections are limited to users in the same school
 
 ### Classes Table
 - `id`: Primary key
@@ -148,7 +157,12 @@ CampusPulse/
    - Edit your full name and email
    - Change your password (requires old password verification)
    - View your account information
-7. **Toggle Theme**
+7. **Connect with Friends**
+   - Open the 👥 Friends button from the dashboard
+   - Search classmates by name or username
+   - Send and respond to friend requests
+   - Open an accepted friend's schedule
+8. **Toggle Theme**
    - Click the 🌙 button in the top-right corner
    - Switch between dark and light modes
    - Your preference is saved automatically
@@ -186,10 +200,19 @@ CampusPulse/
 
 ### Student Routes
 - `GET /student` - Student dashboard
+- `GET /friends` - Friends and schedule-sharing page
 - `GET /api/schedule` - Get school schedule (JSON)
 - `GET /api/notes/class/<id>` - Get notes for a specific class
 - `POST /api/notes/add` - Create a new note
 - `DELETE /api/notes/<id>` - Delete a note
+
+### Friends API Endpoints
+- `GET /api/friends` - List friends and pending requests
+- `GET /api/friends/search?q=<name>` - Search same-school users
+- `POST /api/friends/request` - Send a friend request
+- `PUT /api/friends/request/<id>` - Accept or decline a request
+- `DELETE /api/friends/<id>` - Remove a friend
+- `GET /api/friends/<id>/schedule` - View an accepted friend's enrolled schedule
 
 ### Admin Routes
 - `GET /admin` - Admin dashboard
