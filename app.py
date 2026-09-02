@@ -27,6 +27,7 @@ def init_db():
             name TEXT NOT NULL UNIQUE,
             total_school_days INTEGER DEFAULT 180,
             current_school_day INTEGER DEFAULT 1,
+            allowed_grades TEXT DEFAULT '5,6,7,8,9,10,11,12',
             end_of_year_date TEXT,
             announcement TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -117,6 +118,9 @@ def init_db():
     if 'last_school_day_date' not in school_columns:
         cursor.execute('ALTER TABLE schools ADD COLUMN last_school_day_date TEXT')
         cursor.execute('UPDATE schools SET last_school_day_date = ?', (date.today().isoformat(),))
+    if 'allowed_grades' not in school_columns:
+        cursor.execute("ALTER TABLE schools ADD COLUMN allowed_grades TEXT DEFAULT '5,6,7,8,9,10,11,12'")
+        cursor.execute("UPDATE schools SET allowed_grades = '5,6,7,8,9,10,11,12' WHERE allowed_grades IS NULL")
     
     db.commit()
     # Friend Requests table
@@ -277,8 +281,25 @@ def register():
         else:
             db = get_db()
             existing_user = db.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+            school = db.execute('SELECT allowed_grades FROM schools WHERE id = ?', (school_id,)).fetchone()
+            try:
+                grade_number = int(grade)
+                graduation_year_number = int(graduation_year)
+                allowed_grades = {int(item) for item in (school['allowed_grades'] if school else '').split(',') if item.strip()}
+            except (TypeError, ValueError):
+                grade_number = 0
+                graduation_year_number = 0
+                allowed_grades = set()
             
-            if existing_user:
+            if not school:
+                error = 'Please select a valid school'
+            elif grade_number not in range(5, 13):
+                error = 'Grade must be between 5 and 12'
+            elif grade_number not in allowed_grades:
+                error = 'That school is not accepting registrations for the selected grade'
+            elif graduation_year_number < 2024:
+                error = 'Graduation year must be 2024 or later'
+            elif existing_user:
                 error = 'Username already exists'
             else:
                 try:
@@ -286,7 +307,7 @@ def register():
                     cursor.execute('''
                         INSERT INTO users (username, password, full_name, email, school_id, role, grade, graduation_year)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (username, hash_password(password), full_name, email, school_id, 'student', grade, graduation_year))
+                    ''', (username, hash_password(password), full_name, email, school_id, 'student', grade_number, graduation_year_number))
                     db.commit()
                     success = 'Registration successful! Please log in.'
                 except sqlite3.IntegrityError as e:
@@ -296,7 +317,7 @@ def register():
     
     # Get list of schools
     db = get_db()
-    schools = db.execute('SELECT id, name FROM schools ORDER BY name').fetchall()
+    schools = db.execute('SELECT id, name, allowed_grades FROM schools ORDER BY name').fetchall()
     db.close()
     
     return render_template('register.html', error=error, success=success, schools=schools)
@@ -803,11 +824,20 @@ def update_school(school_id):
     db = get_db()
     cursor = db.cursor()
     
+    try:
+        allowed_grades = sorted({int(item) for item in str(data.get('allowed_grades', '')).split(',') if item.strip()})
+    except ValueError:
+        db.close()
+        return jsonify({'success': False, 'error': 'Allowed grades must be numbers from 5 to 12'}), 400
+    if not allowed_grades or any(grade < 5 or grade > 12 for grade in allowed_grades):
+        db.close()
+        return jsonify({'success': False, 'error': 'Select at least one allowed grade from 5 to 12'}), 400
+
     cursor.execute('''
         UPDATE schools 
-        SET name = ?, total_school_days = ?, current_school_day = ?, end_of_year_date = ?, announcement = ?
+        SET name = ?, total_school_days = ?, current_school_day = ?, allowed_grades = ?, end_of_year_date = ?, announcement = ?
         WHERE id = ?
-    ''', (data['name'], data['total_school_days'], data['current_school_day'], data['end_of_year_date'], data['announcement'], school_id))
+    ''', (data['name'], data['total_school_days'], data['current_school_day'], ','.join(map(str, allowed_grades)), data['end_of_year_date'], data['announcement'], school_id))
     
     db.commit()
     db.close()
@@ -819,6 +849,14 @@ def update_school(school_id):
 def add_class():
     """Add new class"""
     data = request.get_json()
+    min_grade = data.get('min_grade')
+    max_grade = data.get('max_grade')
+    if min_grade is not None and (int(min_grade) < 5 or int(min_grade) > 12):
+        return jsonify({'success': False, 'error': 'Minimum grade must be between 5 and 12'}), 400
+    if max_grade is not None and (int(max_grade) < 5 or int(max_grade) > 12):
+        return jsonify({'success': False, 'error': 'Maximum grade must be between 5 and 12'}), 400
+    if min_grade is not None and max_grade is not None and int(min_grade) > int(max_grade):
+        return jsonify({'success': False, 'error': 'Minimum grade cannot exceed maximum grade'}), 400
     
     db = get_db()
     cursor = db.cursor()
@@ -839,6 +877,14 @@ def add_class():
 def update_class(class_id):
     """Update class"""
     data = request.get_json()
+    min_grade = data.get('min_grade')
+    max_grade = data.get('max_grade')
+    if min_grade is not None and (int(min_grade) < 5 or int(min_grade) > 12):
+        return jsonify({'success': False, 'error': 'Minimum grade must be between 5 and 12'}), 400
+    if max_grade is not None and (int(max_grade) < 5 or int(max_grade) > 12):
+        return jsonify({'success': False, 'error': 'Maximum grade must be between 5 and 12'}), 400
+    if min_grade is not None and max_grade is not None and int(min_grade) > int(max_grade):
+        return jsonify({'success': False, 'error': 'Minimum grade cannot exceed maximum grade'}), 400
     
     db = get_db()
     cursor = db.cursor()

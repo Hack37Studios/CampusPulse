@@ -405,6 +405,19 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Grades Allowed to Register</label>
+                    <div id="allowedGrades" style="display:flex; flex-wrap:wrap; gap:10px;">
+                        {% set selected_grades = (school.allowed_grades or '5,6,7,8,9,10,11,12').split(',') %}
+                        {% for grade in range(5, 13) %}
+                        <label style="display:flex; align-items:center; gap:5px;">
+                            <input type="checkbox" value="{{ grade }}" {% if grade|string in selected_grades %}checked{% endif %}> Grade {{ grade }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <small style="color:var(--text-muted);">Students will only see these grades during registration.</small>
+                </div>
+
+                <div class="form-group">
                     <label>End of Year Date</label>
                     <input type="date" id="endDate" value="{{ school.end_of_year_date }}" required>
                 </div>
@@ -489,11 +502,11 @@
                     </div>
                     <div>
                         <label>Min Grade</label>
-                        <input type="number" min="9" max="12" value="${cls.min_grade || ''}" data-class-id="${cls.id}" data-field="min_grade" placeholder="Optional">
+                        <input type="number" min="5" max="12" value="${cls.min_grade || ''}" data-class-id="${cls.id}" data-field="min_grade" placeholder="Optional">
                     </div>
                     <div>
                         <label>Max Grade</label>
-                        <input type="number" min="9" max="12" value="${cls.max_grade || ''}" data-class-id="${cls.id}" data-field="max_grade" placeholder="Optional">
+                        <input type="number" min="5" max="12" value="${cls.max_grade || ''}" data-class-id="${cls.id}" data-field="max_grade" placeholder="Optional">
                     </div>
                     <button type="button" class="delete-btn" onclick="deleteClass(${cls.id})">Delete</button>
                 `;
@@ -540,11 +553,11 @@
                 </div>
                 <div>
                     <label>Min Grade</label>
-                    <input type="number" min="9" max="12" id="${newId}_min_grade" placeholder="Optional">
+                    <input type="number" min="5" max="12" id="${newId}_min_grade" placeholder="Optional">
                 </div>
                 <div>
                     <label>Max Grade</label>
-                    <input type="number" min="9" max="12" id="${newId}_max_grade" placeholder="Optional">
+                    <input type="number" min="5" max="12" id="${newId}_max_grade" placeholder="Optional">
                 </div>
                 <button type="button" class="btn btn-primary" onclick="saveNewClass('${newId}')">Add</button>
             `;
@@ -558,6 +571,7 @@
                 name: document.getElementById('schoolName').value,
                 total_school_days: parseInt(document.getElementById('totalDays').value),
                 current_school_day: parseInt(document.getElementById('currentDay').value),
+                allowed_grades: Array.from(document.querySelectorAll('#allowedGrades input:checked')).map(input => input.value).join(','),
                 end_of_year_date: document.getElementById('endDate').value,
                 announcement: document.getElementById('announcement').value
             };

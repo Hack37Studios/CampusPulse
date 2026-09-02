@@ -637,7 +637,7 @@
             container.innerHTML = filteredClasses.map(cls => {
                 const isEnrolled = enrolledClassIds.includes(cls.id);
                 const gradeBadge = cls.min_grade || cls.max_grade 
-                    ? `Grade ${cls.min_grade || '9'}-${cls.max_grade || '12'}` 
+                    ? `Grade ${cls.min_grade || '5'}-${cls.max_grade || '12'}`
                     : 'All Grades';
                 
                 return `

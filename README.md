@@ -20,7 +20,8 @@ A comprehensive school schedule management system with a beautiful, modern inter
 - **Friends & Schedule Sharing** - Send, accept, and decline requests; view accepted friends' enrolled schedules
 
 ### Authentication System
-- **User Registration** - Self-service registration for new students
+- **User Registration** - Self-service registration for students in grades 5-12
+- **School Registration Rules** - Each school can choose exactly which grades may register
 - **Secure Login** - Username and password authentication
 - **Role-Based Access** - Separate admin and student interface
 - **Password Security** - Minimum 6 characters, hashed storage
@@ -107,6 +108,7 @@ CampusPulse/
 - `last_school_day_date`: Date through which the counter has been updated
 - `end_of_year_date`: Date school ends
 - `announcement`: School announcement
+- `allowed_grades`: Comma-separated grades permitted to register, from 5 through 12
 
 ### Users Table
 - `id`: Primary key
@@ -144,6 +146,7 @@ CampusPulse/
    - Confirm your password matches
    - Submit to create your account
    - Login with your new credentials
+   - The selected school determines which grade options are available
 
 ### For Students
 
@@ -173,6 +176,7 @@ CampusPulse/
 2. **Manage Schools**
    - View all schools from the dashboard
    - Click "Edit School" to modify school settings (name, school year dates, announcement)
+   - Select the grades that are allowed to register at that school
    
 3. **Manage Classes**
    - Go to school edit page

@@ -196,10 +196,10 @@
 
             <div class="form-group">
                 <label for="school_id">School</label>
-                <select id="school_id" name="school_id" required>
+                <select id="school_id" name="school_id" required onchange="updateGradeOptions()">
                     <option value="">-- Select Your School --</option>
                     {% for school in schools %}
-                        <option value="{{ school.id }}">{{ school.name }}</option>
+                        <option value="{{ school.id }}" data-grades="{{ school.allowed_grades or '5,6,7,8,9,10,11,12' }}">{{ school.name }}</option>
                     {% endfor %}
                 </select>
                 {% if not schools %}
@@ -210,7 +210,9 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="grade">Current Grade</label>
-                    <input type="number" id="grade" name="grade" min="9" max="12" required>
+                    <select id="grade" name="grade" required disabled>
+                        <option value="">Select a school first</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="graduation_year">Graduation Year</label>
@@ -242,4 +244,13 @@
         </div>
     </div>
 </body>
+<script>
+function updateGradeOptions() {
+    const school = document.getElementById('school_id').selectedOptions[0];
+    const grade = document.getElementById('grade');
+    const grades = school && school.dataset.grades ? school.dataset.grades.split(',').map(value => value.trim()).filter(Boolean) : [];
+    grade.innerHTML = grades.length ? '<option value="">-- Select Grade --</option>' + grades.map(value => `<option value="${value}">${value}th Grade</option>`).join('') : '<option value="">Select a school first</option>';
+    grade.disabled = !grades.length;
+}
+</script>
 </html>
