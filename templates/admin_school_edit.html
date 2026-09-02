@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusPulse - Edit School</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-purple: #d084d0;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .back-btn {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green) 0%, #16a34a 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group.grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="time"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--primary-bg);
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        input[type="time"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .classes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .classes-table th {
+            background: rgba(56, 189, 248, 0.1);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--accent-blue);
+        }
+
+        .classes-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .classes-table tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .class-row-edit {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: rgba(56, 189, 248, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            align-items: flex-end;
+        }
+
+        .class-row-edit input {
+            margin-bottom: 0;
+        }
+
+        .class-row-edit label {
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+        }
+
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+
+        .add-class-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-group.grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .class-row-edit {
+                grid-template-columns: 1fr;
+            }
+
+            .classes-table {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="/admin" class="back-btn">← Back to Dashboard</a>
+                <div class="title">{{ school.name }}</div>
+            </div>
+        </div>
+
+        <div class="success-message" id="successMsg">✓ Changes saved successfully!</div>
+        <div class="error-message" id="errorMsg">✗ An error occurred</div>
+
+        <!-- School Settings Section -->
+        <div class="section">
+            <div class="section-title">⚙️ School Settings</div>
+            <form onsubmit="saveSchoolSettings(event)">
+                <div class="form-group">
+                    <label>School Name</label>
+                    <input type="text" id="schoolName" value="{{ school.name }}" required>
+                </div>
+
+                <div class="form-group grid-2">
+                    <div>
+                        <label>Total School Days</label>
+                        <input type="number" id="totalDays" value="{{ school.total_school_days }}" required>
+                    </div>
+                    <div>
+                        <label>Current School Day</label>
+                        <input type="number" id="currentDay" value="{{ school.current_school_day }}" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>End of Year Date</label>
+                    <input type="date" id="endDate" value="{{ school.end_of_year_date }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>School Announcement</label>
+                    <textarea id="announcement">{{ school.announcement }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+            </form>
+        </div>
+
+        <!-- Classes Section -->
+        <div class="section">
+            <div class="section-title">📚 Manage Classes</div>
+            
+            <div id="classesList"></div>
+
+            <button class="btn btn-primary add-class-btn" onclick="addNewClassForm()">+ Add Class</button>
+        </div>
+
+        <!-- Users Section -->
+        <div class="section">
+            <div class="section-title">👥 Manage Users</div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="/admin/users/{{ school.id }}" class="btn btn-primary">Manage Users →</a>
+                <a href="/admin/enrollment/{{ school.id }}" class="btn btn-primary" style="background: var(--accent-purple);">📚 Manage Enrollments →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const schoolId = {{ school.id }};
+        const classes = {{ classes|tojson }};
+
+        function renderClasses() {
+            const container = document.getElementById('classesList');
+            container.innerHTML = '';
+
+            if (classes.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No classes added yet</p>';
+                return;
+            }
+
+            classes.forEach((cls, index) => {
+                const row = document.createElement('div');
+                row.className = 'class-row-edit';
+                row.innerHTML = `
+                    <div>
+                        <label>Period</label>
+                        <input type="number" value="${cls.period}" data-class-id="${cls.id}" data-field="period">
+                    </div>
+                    <div>
+                        <label>Class Name</label>
+                        <input type="text" value="${cls.name}" data-class-id="${cls.id}" data-field="name">
+                    </div>
+                    <div>
+                        <label>Teacher</label>
+                        <input type="text" value="${cls.teacher || ''}" data-class-id="${cls.id}" data-field="teacher">
+                    </div>
+                    <div>
+                        <label>Room</label>
+                        <input type="text" value="${cls.room}" data-class-id="${cls.id}" data-field="room">
+                    </div>
+                    <div>
+                        <label>Start Time</label>
+                        <input type="time" value="${cls.start_time}" data-class-id="${cls.id}" data-field="start_time">
+                    </div>
+                    <div>
+                        <label>End Time</label>
+                        <input type="time" value="${cls.end_time}" data-class-id="${cls.id}" data-field="end_time">
+                    </div>
+                    <div>
+                        <label>Min Grade</label>
+                        <input type="number" min="9" max="12" value="${cls.min_grade || ''}" data-class-id="${cls.id}" data-field="min_grade" placeholder="Optional">
+                    </div>
+                    <div>
+                        <label>Max Grade</label>
+                        <input type="number" min="9" max="12" value="${cls.max_grade || ''}" data-class-id="${cls.id}" data-field="max_grade" placeholder="Optional">
+                    </div>
+                    <button type="button" class="delete-btn" onclick="deleteClass(${cls.id})">Delete</button>
+                `;
+                container.appendChild(row);
+            });
+
+            // Add save listeners
+            document.querySelectorAll('[data-class-id]').forEach(el => {
+                el.addEventListener('change', () => saveClassChanges(el.dataset.classId));
+            });
+        }
+
+        function addNewClassForm() {
+            const container = document.getElementById('classesList');
+            const newId = 'new_' + Date.now();
+            
+            const form = document.createElement('div');
+            form.className = 'class-row-edit';
+            form.id = newId;
+            form.innerHTML = `
+                <div>
+                    <label>Period</label>
+                    <input type="number" id="${newId}_period" value="1">
+                </div>
+                <div>
+                    <label>Class Name</label>
+                    <input type="text" id="${newId}_name" placeholder="e.g., English Literature">
+                </div>
+                <div>
+                    <label>Teacher</label>
+                    <input type="text" id="${newId}_teacher" placeholder="e.g., Mr. Smith">
+                </div>
+                <div>
+                    <label>Room</label>
+                    <input type="text" id="${newId}_room" placeholder="e.g., 101">
+                </div>
+                <div>
+                    <label>Start Time</label>
+                    <input type="time" id="${newId}_start">
+                </div>
+                <div>
+                    <label>End Time</label>
+                    <input type="time" id="${newId}_end">
+                </div>
+                <div>
+                    <label>Min Grade</label>
+                    <input type="number" min="9" max="12" id="${newId}_min_grade" placeholder="Optional">
+                </div>
+                <div>
+                    <label>Max Grade</label>
+                    <input type="number" min="9" max="12" id="${newId}_max_grade" placeholder="Optional">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="saveNewClass('${newId}')">Add</button>
+            `;
+            container.appendChild(form);
+        }
+
+        async function saveSchoolSettings(e) {
+            e.preventDefault();
+            
+            const data = {
+                name: document.getElementById('schoolName').value,
+                total_school_days: parseInt(document.getElementById('totalDays').value),
+                current_school_day: parseInt(document.getElementById('currentDay').value),
+                end_of_year_date: document.getElementById('endDate').value,
+                announcement: document.getElementById('announcement').value
+            };
+
+            try {
+                const res = await fetch(`/api/admin/school/${schoolId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showSuccess('School settings updated!');
+                } else {
+                    showError('Failed to update settings');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function saveNewClass(id) {
+            const data = {
+                school_id: schoolId,
+                period: parseInt(document.getElementById(`${id}_period`).value),
+                name: document.getElementById(`${id}_name`).value,
+                teacher: document.getElementById(`${id}_teacher`).value,
+                room: document.getElementById(`${id}_room`).value,
+                start_time: document.getElementById(`${id}_start`).value,
+                end_time: document.getElementById(`${id}_end`).value,
+                min_grade: document.getElementById(`${id}_min_grade`).value ? parseInt(document.getElementById(`${id}_min_grade`).value) : null,
+                max_grade: document.getElementById(`${id}_max_grade`).value ? parseInt(document.getElementById(`${id}_max_grade`).value) : null
+            };
+
+            if (!data.name || !data.start_time || !data.end_time) {
+                showError('Please fill in all required fields');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/class', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    const result = await res.json();
+                    data.id = result.id;
+                    classes.push(data);
+                    document.getElementById(id).remove();
+                    renderClasses();
+                    showSuccess('Class added!');
+                } else {
+                    showError('Failed to add class');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function saveClassChanges(classId) {
+            const period = document.querySelector(`[data-class-id="${classId}"][data-field="period"]`).value;
+            const name = document.querySelector(`[data-class-id="${classId}"][data-field="name"]`).value;
+            const teacher = document.querySelector(`[data-class-id="${classId}"][data-field="teacher"]`).value;
+            const room = document.querySelector(`[data-class-id="${classId}"][data-field="room"]`).value;
+            const start_time = document.querySelector(`[data-class-id="${classId}"][data-field="start_time"]`).value;
+            const end_time = document.querySelector(`[data-class-id="${classId}"][data-field="end_time"]`).value;
+            const min_grade = document.querySelector(`[data-class-id="${classId}"][data-field="min_grade"]`).value;
+            const max_grade = document.querySelector(`[data-class-id="${classId}"][data-field="max_grade"]`).value;
+
+            const data = { 
+                period, 
+                name, 
+                teacher, 
+                room, 
+                start_time, 
+                end_time,
+                min_grade: min_grade ? parseInt(min_grade) : null,
+                max_grade: max_grade ? parseInt(max_grade) : null
+            };
+
+            try {
+                const res = await fetch(`/api/admin/class/${classId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showSuccess('Class updated!');
+                } else {
+                    showError('Failed to update class');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function deleteClass(classId) {
+            if (!confirm('Are you sure you want to delete this class?')) return;
+
+            try {
+                const res = await fetch(`/api/admin/class/${classId}`, { method: 'DELETE' });
+                
+                if (res.ok) {
+                    const index = classes.findIndex(c => c.id == classId);
+                    if (index > -1) classes.splice(index, 1);
+                    renderClasses();
+                    showSuccess('Class deleted!');
+                } else {
+                    showError('Failed to delete class');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = '✓ ' + msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = '✗ ' + msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        // Initialize
+        renderClasses();
+    </script>
+</body>
+</html>

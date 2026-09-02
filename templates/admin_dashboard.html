@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusPulse - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-purple: #d084d0;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-purple);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #06b6d4 100%);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        .schools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .school-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .school-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(56, 189, 248, 0.15);
+        }
+
+        .school-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 12px;
+        }
+
+        .school-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 0;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .announcement-preview {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: #fbbf24;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-edit {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        .btn-edit:hover {
+            background: #06b6d4;
+        }
+
+        .btn-users {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        .btn-users:hover {
+            background: #c466b8;
+        }
+
+        .btn-enroll {
+            background: var(--accent-green);
+            color: #000;
+        }
+
+        .btn-enroll:hover {
+            background: #16a34a;
+        }
+
+        .no-schools {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .no-schools-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(56, 189, 248, 0.05) 100%);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 2px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+
+            .schools-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚙️ Admin Dashboard</div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="showNewSchoolForm()">+ Add School</button>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value" id="total-schools">{{ schools|length }}</div>
+                <div class="stat-label">Active Schools</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-students">--</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+        </div>
+
+        <div class="title">Manage Schools</div>
+
+        {% if schools %}
+            <div class="schools-grid">
+                {% for school in schools %}
+                    <div class="school-card">
+                        <div class="school-name">{{ school.name }}</div>
+                        
+                        <div class="school-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">School Day</div>
+                                <div class="meta-value">{{ school.current_school_day }}/{{ school.total_school_days }}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">End Date</div>
+                                <div class="meta-value" style="font-size: 0.9rem;">{{ school.end_of_year_date }}</div>
+                            </div>
+                        </div>
+
+                        {% if school.announcement %}
+                            <div class="announcement-preview">📢 {{ school.announcement }}</div>
+                        {% endif %}
+
+                        <div class="card-actions">
+                            <a href="/admin/school/{{ school.id }}" class="btn-small btn-edit">⚙️ Edit School</a>
+                            <a href="/admin/users/{{ school.id }}" class="btn-small btn-users">👥 Users</a>
+                            <a href="/admin/enrollment/{{ school.id }}" class="btn-small btn-enroll">📚 Enrollments</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-schools">
+                <div class="no-schools-icon">🏫</div>
+                <p>No schools found. Create one to get started!</p>
+                <button class="btn btn-primary" onclick="showNewSchoolForm()" style="margin-top: 20px;">+ Add School</button>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal for new school (simple inline form) -->
+    <div id="schoolFormModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: var(--card-bg); padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; border: 1px solid var(--border-color);">
+            <h2 style="color: var(--text-main); margin-bottom: 20px;">Create New School</h2>
+            <form onsubmit="createSchool(event)">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">School Name</label>
+                    <input type="text" id="schoolName" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--primary-bg); color: var(--text-main);">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Total School Days</label>
+                        <input type="number" id="totalDays" value="180" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--primary-bg); color: var(--text-main);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Current Day</label>
+                        <input type="number" id="currentDay" value="1" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--primary-bg); color: var(--text-main);">
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">End of Year Date</label>
+                    <input type="date" id="endDate" required style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--primary-bg); color: var(--text-main);">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--text-muted);">Announcement</label>
+                    <textarea id="announcement" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--primary-bg); color: var(--text-main); min-height: 80px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Create School</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeSchoolForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showNewSchoolForm() {
+            document.getElementById('schoolFormModal').style.display = 'flex';
+        }
+
+        function closeSchoolForm() {
+            document.getElementById('schoolFormModal').style.display = 'none';
+        }
+
+        async function createSchool(e) {
+            e.preventDefault();
+            // This would require backend API endpoint to create schools
+            // For now, just redirect to edit page with a message
+            alert('School creation API not yet implemented. Use Flask shell to add schools.');
+            closeSchoolForm();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('schoolFormModal').addEventListener('click', (e) => {
+            if (e.target.id === 'schoolFormModal') closeSchoolForm();
+        });
+    </script>
+</body>
+</html>
