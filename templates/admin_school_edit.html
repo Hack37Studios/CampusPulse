@@ -242,6 +242,101 @@
             gap: 8px;
         }
 
+        .pending-class-card {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+            border: 2px solid #fbbf24;
+            border-left: 5px solid #f97316;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+
+        .pending-class-card:hover {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+        }
+
+        .pending-badge {
+            display: inline-block;
+            background: #f97316;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .pending-class-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .pending-class-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pending-class-info-item label {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .pending-class-info-item value {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .pending-creator {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .pending-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .approve-btn {
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .approve-btn:hover {
+            background: #16a34a;
+        }
+
+        .reject-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .reject-btn:hover {
+            background: #dc2626;
+        }
+
         .success-message {
             background: rgba(34, 197, 94, 0.1);
             border: 1px solid var(--accent-green);
@@ -332,6 +427,12 @@
             <button class="btn btn-primary add-class-btn" onclick="addNewClassForm()">+ Add Class</button>
         </div>
 
+        <!-- Pending Classes Section -->
+        <div class="section">
+            <div class="section-title">⏳ Pending Class Approvals</div>
+            <div id="pendingClassesList"></div>
+        </div>
+
         <!-- Users Section -->
         <div class="section">
             <div class="section-title">👥 Manage Users</div>
@@ -350,12 +451,15 @@
             const container = document.getElementById('classesList');
             container.innerHTML = '';
 
-            if (classes.length === 0) {
+            // Filter only approved classes
+            const approvedClasses = classes.filter(c => c.is_approved);
+
+            if (approvedClasses.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No classes added yet</p>';
                 return;
             }
 
-            classes.forEach((cls, index) => {
+            approvedClasses.forEach((cls, index) => {
                 const row = document.createElement('div');
                 row.className = 'class-row-edit';
                 row.innerHTML = `
@@ -475,6 +579,56 @@
             }
         }
 
+        function renderPendingClasses() {
+            const container = document.getElementById('pendingClassesList');
+            container.innerHTML = '';
+
+            // Filter only pending (unapproved) classes
+            const pendingClasses = classes.filter(c => !c.is_approved);
+
+            if (pendingClasses.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No pending classes</p>';
+                return;
+            }
+
+            pendingClasses.forEach(cls => {
+                const card = document.createElement('div');
+                card.className = 'pending-class-card';
+                card.innerHTML = `
+                    <div class="pending-badge">⏳ Pending Approval</div>
+                    <div style="margin-bottom: 10px;">
+                        <strong style="font-size: 18px; color: var(--accent-blue);">Period ${cls.period}: ${cls.name}</strong>
+                    </div>
+                    <div class="pending-class-info">
+                        <div class="pending-class-info-item">
+                            <label>Teacher</label>
+                            <value>${cls.teacher || 'Not assigned'}</value>
+                        </div>
+                        <div class="pending-class-info-item">
+                            <label>Room</label>
+                            <value>${cls.room || 'TBA'}</value>
+                        </div>
+                        <div class="pending-class-info-item">
+                            <label>Time</label>
+                            <value>${cls.start_time} - ${cls.end_time}</value>
+                        </div>
+                        <div class="pending-class-info-item">
+                            <label>Grade Range</label>
+                            <value>${cls.min_grade ? cls.min_grade : 'All'} - ${cls.max_grade ? cls.max_grade : 'All'}</value>
+                        </div>
+                    </div>
+                    <div class="pending-creator">
+                        👤 Suggested by: <strong>${cls.creator_name || 'Unknown User'}</strong>
+                    </div>
+                    <div class="pending-actions">
+                        <button class="approve-btn" onclick="approveClass(${cls.id})">✓ Approve</button>
+                        <button class="reject-btn" onclick="rejectClass(${cls.id})">✕ Reject</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
         async function saveNewClass(id) {
             const data = {
                 school_id: schoolId,
@@ -586,8 +740,63 @@
             setTimeout(() => el.style.display = 'none', 3000);
         }
 
+        async function approveClass(classId) {
+            try {
+                const res = await fetch(`/api/admin/class/${classId}/approve`, {
+                    method: 'PUT'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Update local class object
+                    const cls = classes.find(c => c.id === classId);
+                    if (cls) {
+                        cls.is_approved = 1;
+                    }
+                    
+                    renderClasses();
+                    renderPendingClasses();
+                    showSuccess('Class approved successfully!');
+                } else {
+                    showError('Failed to approve class');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        async function rejectClass(classId) {
+            if (!confirm('Are you sure you want to reject this class? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/admin/class/${classId}/reject`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    // Remove from local array
+                    const index = classes.findIndex(c => c.id === classId);
+                    if (index > -1) {
+                        classes.splice(index, 1);
+                    }
+                    
+                    renderClasses();
+                    renderPendingClasses();
+                    showSuccess('Class rejected');
+                } else {
+                    showError('Failed to reject class');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
         // Initialize
         renderClasses();
+        renderPendingClasses();
     </script>
 </body>
 </html>

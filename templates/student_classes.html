@@ -236,6 +236,123 @@
             color: var(--text-main);
         }
 
+        .search-filter-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--primary-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        .clear-filters-btn {
+            padding: 12px 20px;
+            background: var(--primary-bg);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .clear-filters-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .filter-group select {
+            padding: 10px 12px;
+            background: var(--primary-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .active-filter-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-blue);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .active-filter-tag button {
+            background: none;
+            border: none;
+            color: var(--accent-blue);
+            cursor: pointer;
+            font-weight: 700;
+            padding: 0;
+            font-size: 1rem;
+        }
+
+        .active-filter-tag button:hover {
+            color: #06b6d4;
+        }
+
         .stats-bar {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -307,15 +424,198 @@
             </div>
         </div>
 
+        <!-- Search & Filter Section -->
+        <div class="search-filter-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search by class name or teacher..." onkeyup="applyFilters()">
+                <button class="clear-filters-btn" onclick="clearAllFilters()">Reset Filters</button>
+            </div>
+
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>Period</label>
+                    <select id="filterPeriod" onchange="applyFilters()">
+                        <option value="">All Periods</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Teacher</label>
+                    <select id="filterTeacher" onchange="applyFilters()">
+                        <option value="">All Teachers</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Enrollment Status</label>
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">All Classes</option>
+                        <option value="enrolled">Enrolled</option>
+                        <option value="not-enrolled">Not Enrolled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="active-filters" id="activeFilters"></div>
+        </div>
+
         <!-- Classes Grid -->
         <div id="classesContainer" class="grid-container"></div>
+
+        <!-- Create Class Section -->
+        <div style="margin-top: 50px; padding: 30px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(56, 189, 248, 0.1) 100%); border: 2px solid var(--accent-green); border-radius: 12px;">
+            <h2 style="margin-bottom: 15px;">💡 Suggest a New Class</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Can't find a class you need? Submit a suggestion for the admin to review and approve.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">Period</label>
+                    <input type="number" id="createPeriod" placeholder="e.g., 1" min="1" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">Class Name</label>
+                    <input type="text" id="createName" placeholder="e.g., Spanish II" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">Teacher</label>
+                    <input type="text" id="createTeacher" placeholder="e.g., Ms. Rodriguez" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">Room</label>
+                    <input type="text" id="createRoom" placeholder="e.g., 201" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">Start Time</label>
+                    <input type="time" id="createStartTime" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-muted); font-size: 14px;">End Time</label>
+                    <input type="time" id="createEndTime" style="width: 100%; padding: 10px 12px; background: var(--primary-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+            </div>
+
+            <button onclick="submitClassSuggestion()" style="background: var(--accent-green); color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.3s;">📤 Submit Class Suggestion</button>
+        </div>
     </div>
 
     <script>
         const enrolledClassIds = {{ enrolled_class_ids | tojson }};
         const allClasses = {{ classes | tojson }};
+        let filteredClasses = [...allClasses];
 
         function initPage() {
+            populateFilterOptions();
+            renderClasses();
+            updateStats();
+        }
+
+        function populateFilterOptions() {
+            // Get unique periods
+            const periods = [...new Set(allClasses.map(c => c.period))].sort((a, b) => a - b);
+            const periodSelect = document.getElementById('filterPeriod');
+            periods.forEach(period => {
+                const option = document.createElement('option');
+                option.value = period;
+                option.textContent = `Period ${period}`;
+                periodSelect.appendChild(option);
+            });
+
+            // Get unique teachers
+            const teachers = [...new Set(allClasses.map(c => c.teacher).filter(t => t))].sort();
+            const teacherSelect = document.getElementById('filterTeacher');
+            teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher;
+                option.textContent = teacher;
+                teacherSelect.appendChild(option);
+            });
+        }
+
+        function applyFilters() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const periodFilter = document.getElementById('filterPeriod').value;
+            const teacherFilter = document.getElementById('filterTeacher').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            filteredClasses = allClasses.filter(cls => {
+                // Search filter
+                if (searchText) {
+                    const matchesSearch = cls.name.toLowerCase().includes(searchText) ||
+                                        (cls.teacher && cls.teacher.toLowerCase().includes(searchText));
+                    if (!matchesSearch) return false;
+                }
+
+                // Period filter
+                if (periodFilter && cls.period != periodFilter) {
+                    return false;
+                }
+
+                // Teacher filter
+                if (teacherFilter && cls.teacher !== teacherFilter) {
+                    return false;
+                }
+
+                // Status filter
+                if (statusFilter) {
+                    const isEnrolled = enrolledClassIds.includes(cls.id);
+                    if (statusFilter === 'enrolled' && !isEnrolled) return false;
+                    if (statusFilter === 'not-enrolled' && isEnrolled) return false;
+                }
+
+                return true;
+            });
+
+            updateActiveFiltersDisplay();
+            renderClasses();
+            updateStats();
+        }
+
+        function updateActiveFiltersDisplay() {
+            const container = document.getElementById('activeFilters');
+            const filters = [];
+
+            const search = document.getElementById('searchInput').value;
+            if (search) filters.push({ label: `Search: "${search}"`, id: 'search' });
+
+            const period = document.getElementById('filterPeriod').value;
+            if (period) filters.push({ label: `Period ${period}`, id: 'period' });
+
+            const teacher = document.getElementById('filterTeacher').value;
+            if (teacher) filters.push({ label: `Teacher: ${teacher}`, id: 'teacher' });
+
+            const status = document.getElementById('filterStatus').value;
+            if (status) {
+                const statusLabel = status === 'enrolled' ? 'Enrolled' : 'Not Enrolled';
+                filters.push({ label: statusLabel, id: 'status' });
+            }
+
+            if (filters.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = filters.map(f => `
+                <div class="active-filter-tag">
+                    ${f.label}
+                    <button onclick="removeFilter('${f.id}')">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFilter(filterId) {
+            if (filterId === 'search') document.getElementById('searchInput').value = '';
+            else if (filterId === 'period') document.getElementById('filterPeriod').value = '';
+            else if (filterId === 'teacher') document.getElementById('filterTeacher').value = '';
+            else if (filterId === 'status') document.getElementById('filterStatus').value = '';
+
+            applyFilters();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterPeriod').value = '';
+            document.getElementById('filterTeacher').value = '';
+            document.getElementById('filterStatus').value = '';
+            filteredClasses = [...allClasses];
+            updateActiveFiltersDisplay();
             renderClasses();
             updateStats();
         }
@@ -323,18 +623,18 @@
         function renderClasses() {
             const container = document.getElementById('classesContainer');
             
-            if (allClasses.length === 0) {
+            if (filteredClasses.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state" style="grid-column: 1 / -1;">
-                        <div class="empty-state-icon">📚</div>
-                        <h2>No Classes Available</h2>
-                        <p>There are no classes available for your grade level.</p>
+                        <div class="empty-state-icon">🔍</div>
+                        <h2>No Classes Found</h2>
+                        <p>${allClasses.length === 0 ? 'There are no classes available for your grade level.' : 'No classes match your search and filter criteria.'}</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = allClasses.map(cls => {
+            container.innerHTML = filteredClasses.map(cls => {
                 const isEnrolled = enrolledClassIds.includes(cls.id);
                 const gradeBadge = cls.min_grade || cls.max_grade 
                     ? `Grade ${cls.min_grade || '9'}-${cls.max_grade || '12'}` 
@@ -420,8 +720,9 @@
         }
 
         function updateStats() {
-            document.getElementById('totalClasses').textContent = allClasses.length;
-            document.getElementById('enrolledCount').textContent = enrolledClassIds.length;
+            const enrolledInFiltered = filteredClasses.filter(c => enrolledClassIds.includes(c.id)).length;
+            document.getElementById('totalClasses').textContent = filteredClasses.length;
+            document.getElementById('enrolledCount').textContent = enrolledInFiltered;
         }
 
         function showSuccess(msg) {
@@ -436,6 +737,53 @@
             msgEl.textContent = '✗ ' + msg;
             msgEl.classList.add('show');
             setTimeout(() => msgEl.classList.remove('show'), 3000);
+        }
+
+        async function submitClassSuggestion() {
+            const period = document.getElementById('createPeriod').value;
+            const name = document.getElementById('createName').value;
+            const teacher = document.getElementById('createTeacher').value;
+            const room = document.getElementById('createRoom').value;
+            const startTime = document.getElementById('createStartTime').value;
+            const endTime = document.getElementById('createEndTime').value;
+
+            if (!period || !name || !startTime || !endTime) {
+                showError('Please fill in all required fields (Period, Name, Start Time, End Time)');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/student/create-class', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        period: parseInt(period),
+                        name,
+                        teacher,
+                        room,
+                        start_time: startTime,
+                        end_time: endTime,
+                        min_grade: null,
+                        max_grade: null
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showSuccess('Class suggestion submitted! Admins will review and approve it shortly.');
+                    // Clear form
+                    document.getElementById('createPeriod').value = '';
+                    document.getElementById('createName').value = '';
+                    document.getElementById('createTeacher').value = '';
+                    document.getElementById('createRoom').value = '';
+                    document.getElementById('createStartTime').value = '';
+                    document.getElementById('createEndTime').value = '';
+                } else {
+                    showError(data.error || 'Failed to submit class suggestion');
+                }
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
         }
 
         // Initialize on page load

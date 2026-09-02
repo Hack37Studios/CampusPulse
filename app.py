@@ -63,8 +63,12 @@ def init_db():
             end_time TEXT NOT NULL,
             min_grade INTEGER,
             max_grade INTEGER,
+            created_by INTEGER,
+            is_user_created INTEGER DEFAULT 0,
+            is_approved INTEGER DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (school_id) REFERENCES schools(id)
+            FOREIGN KEY (school_id) REFERENCES schools(id),
+            FOREIGN KEY (created_by) REFERENCES users(id)
         )
     ''')
     
@@ -146,10 +150,13 @@ def index():
     """Redirect to login or dashboard based on session"""
     if 'user_id' in session:
         user = get_user_by_id(session['user_id'])
-        if user['role'] == 'admin':
+        if user and user['role'] == 'admin':
             return redirect(url_for('admin_dashboard'))
-        else:
+        elif user:
             return redirect(url_for('student_dashboard'))
+        else:
+            session.clear()
+            return redirect(url_for('login'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -243,6 +250,10 @@ def profile():
     user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     school = db.execute('SELECT * FROM schools WHERE id = ?', (session['school_id'],)).fetchone()
     db.close()
+    
+    if not user or not school:
+        session.clear()
+        return redirect(url_for('login'))
     
     return render_template('profile.html', user=user, school=school)
 
@@ -351,6 +362,12 @@ def student_dashboard():
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     school = db.execute('SELECT * FROM schools WHERE id = ?', (session['school_id'],)).fetchone()
+    
+    if not user or not school:
+        db.close()
+        session.clear()
+        return redirect(url_for('login'))
+    
     # Get only enrolled classes
     classes = db.execute('''
         SELECT c.* FROM classes c
@@ -392,10 +409,16 @@ def view_classes():
     user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
     school = db.execute('SELECT * FROM schools WHERE id = ?', (session['school_id'],)).fetchone()
     
-    # Get all available classes filtered by user's grade
+    if not user or not school:
+        db.close()
+        session.clear()
+        return redirect(url_for('login'))
+    
+    # Get all available classes filtered by user's grade (only approved classes)
     available_classes = db.execute('''
         SELECT c.* FROM classes c
         WHERE c.school_id = ?
+        AND c.is_approved = 1
         AND (c.min_grade IS NULL OR c.min_grade <= ?)
         AND (c.max_grade IS NULL OR c.max_grade >= ?)
         ORDER BY c.period
@@ -478,6 +501,41 @@ def drop_class(class_id):
     
     return jsonify({'success': True})
 
+@app.route('/api/student/create-class', methods=['POST'])
+@login_required
+def create_class_user():
+    """User creates a class suggestion"""
+    data = request.get_json()
+    
+    db = get_db()
+    cursor = db.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO classes (school_id, period, name, room, teacher, start_time, end_time, 
+                                min_grade, max_grade, created_by, is_user_created, is_approved)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+        ''', (
+            session['school_id'],
+            data.get('period'),
+            data.get('name'),
+            data.get('room', ''),
+            data.get('teacher', ''),
+            data.get('start_time'),
+            data.get('end_time'),
+            data.get('min_grade'),
+            data.get('max_grade'),
+            session['user_id']
+        ))
+        
+        db.commit()
+        class_id = cursor.lastrowid
+        db.close()
+        return jsonify({'success': True, 'id': class_id, 'message': 'Class submitted for admin approval'})
+    except Exception as e:
+        db.close()
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
@@ -494,7 +552,13 @@ def edit_school(school_id):
     """Edit school settings"""
     db = get_db()
     school = db.execute('SELECT * FROM schools WHERE id = ?', (school_id,)).fetchone()
-    classes = db.execute('SELECT * FROM classes WHERE school_id = ? ORDER BY period', (school_id,)).fetchall()
+    classes = db.execute('''
+        SELECT c.*, u.full_name as creator_name 
+        FROM classes c 
+        LEFT JOIN users u ON c.created_by = u.id 
+        WHERE c.school_id = ? 
+        ORDER BY c.period
+    ''', (school_id,)).fetchall()
     users = db.execute('SELECT * FROM users WHERE school_id = ?', (school_id,)).fetchall()
     db.close()
     
@@ -807,6 +871,41 @@ def admin_remove_enrollment(class_id, user_id):
         'DELETE FROM student_classes WHERE class_id = ? AND user_id = ?',
         (class_id, user_id)
     )
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/admin/class/<int:class_id>/approve', methods=['PUT'])
+@admin_required
+def approve_class(class_id):
+    """Admin approves a user-created class"""
+    db = get_db()
+    cursor = db.cursor()
+    
+    cursor.execute(
+        'UPDATE classes SET is_approved = 1 WHERE id = ?',
+        (class_id,)
+    )
+    
+    db.commit()
+    db.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/admin/class/<int:class_id>/reject', methods=['DELETE'])
+@admin_required
+def reject_class(class_id):
+    """Admin rejects a user-created class"""
+    db = get_db()
+    cursor = db.cursor()
+    
+    # Delete any enrollments first
+    cursor.execute('DELETE FROM student_classes WHERE class_id = ?', (class_id,))
+    
+    # Delete the class
+    cursor.execute('DELETE FROM classes WHERE id = ?', (class_id,))
     
     db.commit()
     db.close()
